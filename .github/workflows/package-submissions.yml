@@ -1,7 +1,15 @@
-name: WinGet submission on release
+name: WinGet submission
 
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Stable GitHub release tag to submit
+        required: true
+        type: string
+
+permissions:
+  contents: read
 
 jobs:
   winget:
@@ -13,17 +21,25 @@ jobs:
     # winget-create will read the following environment variable to access the GitHub token needed for submitting a PR
     # See https://aka.ms/winget-create-token
     env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ inputs.release_tag }}
       WINGET_CREATE_GITHUB_TOKEN: ${{ secrets.PT_WINGET }}
 
-    # Only submit stable releases
-    if: ${{ !github.event.release.prerelease }}
     steps:
       - name: Upgrade the package Radekyspec.StartLive
         run: |
-          # Get installer info from GitHub release event
-          $assets = '${{ toJSON(github.event.release.assets) }}' | ConvertFrom-Json
-          $installerUrl = $assets | Where-Object -Property name -match 'StartLive-Setup.exe' | Select -ExpandProperty browser_download_url
-          $packageVersion = ${{ toJSON(github.event.release.tag_name) }}
+          $release = gh api "repos/${{ github.repository }}/releases/tags/$env:RELEASE_TAG" | ConvertFrom-Json
+          if ($release.draft -or $release.prerelease) {
+            throw "Release $env:RELEASE_TAG is not a published stable release."
+          }
+
+          $installers = @($release.assets | Where-Object { $_.name -match '^StartLive(?:-win)?-Setup\.exe$' })
+          if ($installers.Count -ne 1) {
+            throw "Expected one Windows setup asset, found $($installers.Count)."
+          }
+
+          $installerUrl = $installers[0].browser_download_url
+          $packageVersion = $release.tag_name
 
           # Update package using wingetcreate
           curl.exe -JLO https://aka.ms/wingetcreate/latest
