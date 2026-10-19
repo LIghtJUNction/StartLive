@@ -113,26 +113,15 @@ reported normally so temporary service failures cannot discard saved accounts.
 
 ### Install & Run
 
-Create a virtual environment:
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then run:
 
 ```shell
-python -m venv venv
+uv sync --locked
+uv run python StartLive.py
 ```
 
-- **Windows**: 
-
-```shell
-.\venv\Scripts\pip.exe install -e .
-.\venv\Scripts\pip.exe install -e ".[pk]"  # if you want to use the bilibili pk feature
-.\venv\Scripts\python.exe .\StartLive.py
-```
-
-- **macOS / Linux**:
-
-```shell
-./venv/bin/pip install -e .
-./venv/bin/pip install -e ".[pk]"  # if you want to use the bilibili pk feature
-./venv/bin/python ./StartLive.py
-```
+For PK support, use `uv sync --locked --extra pk`. Run `uv run ruff check .`
+before contributing. Standard `pip install -e .` and `pip install -e ".[pk]"`
+remain supported.
 
 > Note: Bilibili does **not** enable **HEVC (High Efficiency Video Coding)** streaming for all users. If pushing the stream fails, please check your encoder/codec settings.

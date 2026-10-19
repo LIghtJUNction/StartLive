@@ -98,26 +98,14 @@ Linux 未检测到系统密钥环或 keyring 已禁用时，StartLive 会把登�
 
 ### 安装 & 运行
 
-* 创建虚拟环境
+安装 [uv](https://docs.astral.sh/uv/getting-started/installation/)，然后运行：
 
 ```shell
-python -m venv venv
+uv sync --locked
+uv run python StartLive.py
 ```
 
-- **Windows**: 
-
-```shell
-.\venv\Scripts\pip.exe install -e .
-.\venv\Scripts\pip.exe install -e ".[pk]"  # 如果需要使用pk功能
-.\venv\Scripts\python.exe .\StartLive.py
-```
-
-- **macOS / Linux**:
-
-```shell
-./venv/bin/pip install -e .
-./venv/bin/pip install -e ".[pk]"  # 如果需要使用pk功能
-./venv/bin/python ./StartLive.py
-```
+需要 PK 功能时使用 `uv sync --locked --extra pk`。提交前运行 `uv run ruff check .`。
+仍支持 `pip install -e .` 和 `pip install -e ".[pk]"`。
 
 > 请注意，Bilibili目前没有对所有用户支持HEVC编码推流，如果推流失败可以检查一下编码。

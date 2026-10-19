@@ -41,22 +41,31 @@ jobs:
           echo "APP_VERSION=${VERSION}+${SHORT_SHA}" >> "$GITHUB_ENV"
 
       - name: Setup Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: "3.14.6" # Version range or exact version of a Python version to use, using SemVer's version range syntax
-          architecture: "x64" # optional x64 or x86. Defaults to x64 if not specified
-          cache: "pip"
-          cache-dependency-path: |
-            **/requirements*.txt
-            pyproject.toml
+          python-version: '3.14.6'
+          architecture: 'x64'
 
-      - name: Install Dependencies
-        run: |
-          python -m pip install ".[pk]"
+      - name: Setup uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: '0.12.6'
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Install locked dependencies
+        run: uv sync --locked --no-dev --group build --extra pk --python 3.14.6
+
+      - name: Add uv environment to PATH
+        shell: bash
+        run: >-
+          uv run --no-sync python -c
+          'import os, sysconfig;
+          open(os.environ["GITHUB_PATH"], "a").write(sysconfig.get_path("scripts") + "\n")'
 
       - name: Generate _version.py
         run: |
-          python tools/write_version.py
+          uv run --no-sync python tools/write_version.py
 
       - name: Build OBS PK plugin
         uses: ./.github/actions/build-obs-pk

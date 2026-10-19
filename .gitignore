@@ -9,3 +9,5 @@ dist/
 analysis/
 .analysis-tools/
 .superpowers/
+.ruff_cache/
+.pytest_cache/
