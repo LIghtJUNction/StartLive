@@ -1,11 +1,18 @@
 # -*- coding: utf-8 -*-
 
+# PK version checks require distribution metadata in compiled builds.
+# nuitka-project: --include-distribution-metadata=aiortc
+# nuitka-project: --include-distribution-metadata=aioice
+# nuitka-project: --include-distribution-metadata=pyOpenSSL
+# nuitka-project: --include-distribution-metadata=cryptography
+# nuitka-project: --include-distribution-metadata=pyee
+# nuitka-project: --include-distribution-metadata=certifi
+# nuitka-project: --include-package-data=certifi
+
 import sys
 from argparse import ArgumentParser, SUPPRESS
 from pathlib import Path
 from platform import system
-
-from velopack import App
 
 _velopack_first_run = False
 
@@ -15,40 +22,35 @@ def _on_velopack_first_run(_version) -> None:
     _velopack_first_run = True
 
 
+def _run_velopack_hooks() -> None:
+    """Run installer hooks on platforms managed by Velopack."""
+    if system() == "Linux":
+        return
+
+    from velopack import App
+
+    App().on_first_run(_on_velopack_first_run).run()
+
+
 def main() -> int:
-    # 将较重的应用模块放在 Velopack 启动处理之后导入，
-    # 可以避免安装/更新钩子执行时初始化完整 UI。
-    from PySide6.QtGui import QFont, QIcon
-    from PySide6.QtWidgets import QApplication
-    from qdarktheme import enable_hi_dpi
+    from startlive.core.constant import VERSION
 
-    from src.PySide.window import MainWindow
-    from src.core import app_state
-
-    if MainWindow.is_another_instance_running():
-        return 0
-
-    if system() == "Windows":
-        font_size = 9
-        icon_file = "icon_left.ico"
-    else:
-        font_size = 12
-        icon_file = "icon_left_macOS.ico"
-
-    parser = ArgumentParser()
+    parser = ArgumentParser(prog="startlive")
+    parser.add_argument("--version", action="version",
+                        version=f"StartLive {VERSION}")
 
     parser.add_argument(
         "--web.host",
         dest="web_host",
         default=None,
-        help="Web服务绑定的主机地址",
+        help="Host address for the web server",
     )
     parser.add_argument(
         "--web.port",
         dest="web_port",
         type=int,
         default=None,
-        help="Web服务绑定的端口",
+        help="Port for the web server",
     )
 
     # 兼容旧 Squirrel 启动参数。
@@ -67,12 +69,35 @@ def main() -> int:
 
     args, qt_args = parser.parse_known_args()
 
+    # 将较重的应用模块放在 Velopack 启动处理之后导入，
+    # 可以避免安装/更新钩子执行时初始化完整 UI。
+    from PySide6.QtGui import QFont, QIcon
+    from PySide6.QtWidgets import QApplication
+    from qdarktheme import enable_hi_dpi
+
+    from startlive.PySide.classes import ErrorCenter, install_exception_handlers
+    from startlive.PySide.window import MainWindow
+    from startlive.core import app_state
+
+    if MainWindow.is_another_instance_running():
+        return 0
+
+    if system() == "Windows":
+        font_size = 9
+        icon_file = "icon_left.ico"
+    else:
+        font_size = 12
+        icon_file = "icon_left_macOS.ico"
+
     first_run = _velopack_first_run or args.squirrel_first_run
 
     enable_hi_dpi()
-    app = QApplication(qt_args)
-    # %LocalAppData%/StartLive in velopack and squirrel.windows
+    app = QApplication([sys.argv[0], *qt_args])
+    # %LocalAppData%/StartLive/current/ in velopack and
+    # %LocalAppData%/StartLive/app-x.y.z/ in squirrel.windows
     base_path = Path(__file__).resolve().parent
+    if (base_path / "startlive").is_dir():
+        base_path = base_path / "startlive"
     app.setWindowIcon(
         QIcon(str(base_path / "resources" / icon_file))
     )
@@ -98,6 +123,8 @@ def main() -> int:
         args.no_update,
         base_path=base_path,
     )
+    error_center = ErrorCenter()
+    install_exception_handlers(error_center)
 
     window.apply_color_scheme(
         app.styleHints().colorScheme()
@@ -110,13 +137,24 @@ def main() -> int:
     return app.exec()
 
 
+def cli() -> int:
+    """Entry point for installations managed by pip or uv tool."""
+    from startlive.core import cache, runtime
+
+    runtime.package_managed = True
+    cache._cache_dir.clear()
+    return main()
+
+
 if __name__ == "__main__":
+    # 编码器检测子进程，不执行 Velopack 钩子，不初始化 Qt
+    if len(sys.argv) > 1 and sys.argv[1] == "--pk-encoder-probe":
+        from startlive.core.pk.encoder_probe_child import probe_main
+
+        sys.exit(probe_main(sys.argv[2:]))
+
     # 必须在单实例检查、Qt 初始化和其他正常启动逻辑之前运行。
     # 安装、更新或卸载期间，Velopack 可能在这里直接终止进程。
-    (
-        App()
-        .on_first_run(_on_velopack_first_run)
-        .run()
-    )
+    _run_velopack_hooks()
 
     sys.exit(main())
