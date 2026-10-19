@@ -212,7 +212,7 @@ class ModernUiTests(unittest.TestCase):
         parent = _ParentWindow()
         sidebar = SideBar(
             parent,
-            icon_path=Path("resources"),
+            icon_path=Path(__file__).resolve().parents[1] / "startlive/resources",
             expanded_width=80,
             collapsed_width=58,
         )

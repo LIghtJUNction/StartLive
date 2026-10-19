@@ -12,6 +12,7 @@ from startlive.core.constant import HeadersType, ProxyMode
 class SessionTlsTests(unittest.TestCase):
     def setUp(self):
         saved_settings = app_state.app_settings.as_dict()
+        app_state.app_settings.ssl_verify = True
         self.addCleanup(app_state.app_settings.update, saved_settings)
         environment = patch.dict(os.environ, {
             "HTTP_PROXY": "http://system-proxy.invalid:8080",
@@ -53,6 +54,22 @@ class SessionTlsTests(unittest.TestCase):
                             "http": proxy, "https": proxy,
                         }
                         self.assertEqual(dict(options["proxies"]), expected_proxies)
+
+    def test_verification_defaults_off(self):
+        self.assertFalse(app_state.AppSettings.default_dict()["ssl_verify"])
+
+    def test_toggle_applies_to_existing_sessions_in_all_proxy_modes(self):
+        for mode in (ProxyMode.NONE, ProxyMode.SYSTEM, ProxyMode.CUSTOM):
+            session = self.session(mode)
+            for enabled in (False, True, False):
+                app_state.app_settings.ssl_verify = enabled
+                for method in ("get", "post", "head"):
+                    with self.subTest(mode=mode, enabled=enabled, method=method):
+                        with patch.object(session, "send", return_value=Response()) as send:
+                            getattr(session, method)("https://api.bilibili.com/fixture")
+                        expected = ("/fixture/environment-ca.pem"
+                                    if enabled and mode == ProxyMode.SYSTEM else enabled)
+                        self.assertEqual(send.call_args.kwargs["verify"], expected)
 
     def test_explicit_ca_bundle_remains_supported_in_every_mode(self):
         for mode in (ProxyMode.NONE, ProxyMode.SYSTEM, ProxyMode.CUSTOM):

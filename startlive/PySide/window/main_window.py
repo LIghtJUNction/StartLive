@@ -335,8 +335,8 @@ class MainWindow(SingleInstanceWindow):
         if self._host is not None and self._port is not None:
             panel = self.require_panel()
             self._server_thread = HttpServerWorker(self._host, self._port)
-            self._server_thread.signals.startLive.connect(self.panel.start_live)
-            self._server_thread.signals.stopLive.connect(self.panel.stop_live)
+            self._server_thread.signals.startLive.connect(panel.start_live)
+            self._server_thread.signals.stopLive.connect(panel.stop_live)
             self._server_thread.signals.exception.connect(self._http_error_handler)
             return True
         else:
@@ -725,12 +725,12 @@ class MainWindow(SingleInstanceWindow):
         self._stack.setCurrentIndex(1)
         self._side_bar.btn_home.setChecked(True)
         if app_state.obs_settings.get("auto_connect", False):
-            self.panel.connect_btn.click()
-        self.panel.parent_combo.setCurrentText(
+            panel.connect_btn.click()
+        panel.parent_combo.setCurrentText(
             app_state.room_info.get("parent_area", "请选择")
         )
-        self.panel.child_combo.setCurrentText(app_state.room_info.get("area", ""))
-        self.panel.enable_child_combo_autosave(True)
+        panel.child_combo.setCurrentText(app_state.room_info.get("area", ""))
+        panel.enable_child_combo_autosave(True)
         self._logged_in = True
         self._start_http_server()
 
@@ -798,7 +798,7 @@ class MainWindow(SingleInstanceWindow):
         self.add_thread(
             ReportFaceRecognitionWorker(
                 app_state.room_info["area_code"],
-                app_state.stream_status.face_message,
+                face_message,
                 auth_type,
             )
         )

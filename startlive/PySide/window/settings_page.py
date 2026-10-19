@@ -11,6 +11,7 @@ from startlive.PySide.widgets import SettingsWidget
 from startlive.core import app_state
 from startlive.core.app_state import bg_settings_default
 from startlive.core.constant import BackgroundMode, ProxyMode, PreferProto
+from startlive.core.constant.settings import SettingsName
 from startlive.core.workers.live_delay import StreamTimeShiftUpdateWorker
 
 if TYPE_CHECKING:
@@ -56,6 +57,12 @@ class SettingsPage(SettingsWidget):
         self.proxy_group.idClicked.connect(self._on_proxy_mode_changed)
 
         self._on_proxy_mode_changed(self.proxy_group.checkedId())
+
+        self.ssl_verify_switch = self.add_switch_item(
+            "验证 SSL 证书", checked=app_state.app_settings.ssl_verify)
+        self.ssl_verify_switch.setToolTip(
+            "开启后验证 HTTPS 服务器证书；关闭后不验证证书。修改后立即生效并保存。")
+        self.ssl_verify_switch.toggled.connect(self._on_ssl_verify_changed)
 
         self.delay_edit, self.delay_save_btn = self.add_text_item(
             "推流延迟",
@@ -139,6 +146,11 @@ class SettingsPage(SettingsWidget):
         if parent_window is None:
             raise RuntimeError("SettingsPage requires a MainWindow parent")
         return parent_window
+
+    @Slot(bool)
+    def _on_ssl_verify_changed(self, checked: bool):
+        app_state.app_settings.ssl_verify = checked
+        app_state.save_settings(SettingsName.APP)
 
     @Slot()
     def _on_delay_save(self):
@@ -240,6 +252,7 @@ class SettingsPage(SettingsWidget):
         self._on_cover_changed()
 
     def reset_default(self):
+        self.ssl_verify_switch.setChecked(app_state.app_settings.ssl_verify)
         pm = app_state.app_settings["proxy_mode"]
         self._on_proxy_mode_changed(pm)
         self.proxy_group.button(pm).setChecked(

@@ -37,6 +37,7 @@ dumps = partial(dumps, ensure_ascii=False,
 
 @dataclass(slots=True)
 class AppSettings(StateBase):
+    ssl_verify: bool = False
     proxy_mode: ProxyMode = ProxyMode.NONE
     custom_proxy_url: str = ""
     custom_tray_icon: str = ""
@@ -320,10 +321,16 @@ def replace_account_cookies(cookies: dict[str, str]) -> None:
 
 
 
+class HttpSession(Session):
+    def request(self, method, url, **kwargs):
+        kwargs.setdefault("verify", app_settings.ssl_verify)
+        return super().request(method, url, **kwargs)
+
+
 def create_session(h_type: HeadersType, *,
                    inherit_account_cookies: bool = True,
                    account_cookies: dict[str, str] | None = None) -> Session:
-    session = Session()
+    session = HttpSession()
     if h_type == HeadersType.WEB:
         session.headers.update(constant.HEADERS_WEB)
     elif h_type == HeadersType.APP:
@@ -350,17 +357,17 @@ def create_session(h_type: HeadersType, *,
     }
     match app_settings["proxy_mode"]:
         case ProxyMode.NONE:
-            session.get = partial(session.get, verify=True, timeout=5)
-            session.post = partial(session.post, verify=True, timeout=5)
+            session.get = partial(session.get, timeout=5)
+            session.post = partial(session.post, timeout=5)
             session.trust_env = False
         case ProxyMode.SYSTEM:
-            session.get = partial(session.get, verify=True, timeout=5)
-            session.post = partial(session.post, verify=True, timeout=5)
+            session.get = partial(session.get, timeout=5)
+            session.post = partial(session.post, timeout=5)
             session.trust_env = True
         case ProxyMode.CUSTOM:
-            session.get = partial(session.get, verify=True, timeout=5,
+            session.get = partial(session.get, timeout=5,
                                   proxies=custom_proxy)
-            session.post = partial(session.post, verify=True, timeout=5,
+            session.post = partial(session.post, timeout=5,
                                    proxies=custom_proxy)
             session.trust_env = False
     return session
