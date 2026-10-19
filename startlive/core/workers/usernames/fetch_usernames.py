@@ -1,5 +1,7 @@
+# module import
+from collections.abc import Callable
+from json import loads
 from time import sleep
-from typing import Callable
 
 from requests.cookies import cookiejar_from_dict
 
@@ -21,6 +23,7 @@ class FetchUsernamesWorker(BaseWorker):
         self.logger = get_logger(self.__class__.__name__)
 
     def run(self, report_progress: Callable | None, *args, **kwargs):
+        session = self.require_session()
         if not app_state.scan_status["scanned"]:
             return
         url = "https://api.bilibili.com/x/web-interface/nav"

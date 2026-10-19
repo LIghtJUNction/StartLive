@@ -102,6 +102,7 @@ USERNAME_DISPLAY_TEMPLATE = "{}（{}）"
 MAX_RECENT_TITLE = 5
 VERSION = __version__
 
+# These are public Bilibili LiveHime client identifiers, not user credentials.
 APP_KEY = "aae92bc66f3edfab"
 APP_SECRET = "af125a0d5279fd576c1b4418a3e8276d"
 LIVEHIME_BUILD = "11081"

@@ -129,7 +129,7 @@ class StreamConfigClipboardTests(unittest.TestCase):
         with patch.object(
                 self.panel, "display_stream_info",
                 wraps=self.panel.display_stream_info) as display:
-            presenter.prepare_success_view()
+            presenter.prepare_success_view(app_state.capture_account_context()[0])
 
         display.assert_called_once_with(
             "rtmp://live.example/live", "existing-secret")

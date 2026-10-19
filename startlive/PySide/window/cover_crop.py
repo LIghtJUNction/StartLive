@@ -3,6 +3,8 @@ from PIL.ImageQt import toqpixmap
 from PySide6.QtCore import (
     Qt, QBuffer, QByteArray, QIODevice,
 )
+from typing import TYPE_CHECKING
+
 from PySide6.QtWidgets import (
     QWidget, QPushButton, QFileDialog,
     QGridLayout, QLabel, QSizePolicy,
@@ -12,6 +14,9 @@ from startlive.PySide.interface_adapters.cover import CoverUploadPresenter
 from startlive.PySide.log import get_logger
 from startlive.PySide.widgets import CropLabel
 from startlive.core.workers.cover import CoverUploadWorker
+
+if TYPE_CHECKING:
+    from .stream_config import StreamConfigPanel
 
 
 class CoverCropWidget(QWidget):
@@ -81,7 +86,7 @@ class CoverCropWidget(QWidget):
             704, 396, Qt.AspectRatioMode.IgnoreAspectRatio,
             Qt.TransformationMode.SmoothTransformation
         )
-        self._logger.info(f"image scale to 704x396")
+        self._logger.info("image scale to 704x396")
         ba = QByteArray()
         buf = QBuffer(ba)
         buf.open(QIODevice.OpenModeFlag.WriteOnly)

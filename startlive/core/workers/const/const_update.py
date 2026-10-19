@@ -18,7 +18,7 @@ class ConstantUpdateWorker(BaseWorker):
         self.logger = get_logger(self.__class__.__name__)
         self._base_dir, self._const_path = get_cache_path(CacheType.CONFIG,
                                                           "version.json")
-        self._session.cookies.clear()
+        self.require_session().cookies.clear()
 
     def run(self, report_progress: Callable | None, *args, **kwargs):
         self._load_from_file()

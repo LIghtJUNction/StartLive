@@ -1,9 +1,10 @@
 from startlive.core import app_state
 from startlive.core.workers.base import Presenter
+from startlive.PySide.interface_adapters import MainWindowView
 
 
 class FetchQRPresenter(Presenter):
-    def __init__(self, view: "MainWindow"):
+    def __init__(self, view: MainWindowView):
         super().__init__()
         self._view = view
 

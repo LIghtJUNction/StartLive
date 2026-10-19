@@ -1,4 +1,9 @@
+from typing import TYPE_CHECKING
+
 from startlive.core.workers.base import Presenter
+
+if TYPE_CHECKING:
+    from startlive.PySide.window.stream_config import StreamConfigPanel
 
 
 class StopLivePresenter(Presenter):

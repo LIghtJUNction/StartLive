@@ -1,6 +1,10 @@
 from contextlib import suppress
+from typing import TYPE_CHECKING
 
 from startlive.core.workers.base import Presenter
+
+if TYPE_CHECKING:
+    from startlive.PySide.window.face_qr import FaceQRWidget
 
 
 class FaceAuthPresenter(Presenter):

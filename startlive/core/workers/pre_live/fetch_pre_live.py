@@ -17,11 +17,12 @@ class FetchPreLiveWorker(BaseWorker):
         self.logger = get_logger(self.__class__.__name__)
 
     def _fetch_room_info(self):
+        session = self.require_session()
         live_info_url = "https://api.live.bilibili.com/xlive/app-blink/v1/room/GetInfo"
         info_data = livehime_sign({"uId": self._account_cookies["DedeUserID"]})
         info_data = order_payload(info_data)
         self.logger.info("live_info Request")
-        response = self._session.get(live_info_url, params=info_data)
+        response = session.get(live_info_url, params=info_data)
         response.encoding = "utf-8"
         self.logger.info("live_info Response")
         response = response.json()
@@ -49,6 +50,7 @@ class FetchPreLiveWorker(BaseWorker):
             app_state.scan_status["room_updated"] = True
 
     def run(self, report_progress: Callable | None, *args, **kwargs):
+        session = self.require_session()
         url = "https://api.live.bilibili.com/xlive/app-blink/v1/preLive/PreLive"
         params = livehime_sign({
             "area": "true",
@@ -62,7 +64,7 @@ class FetchPreLiveWorker(BaseWorker):
         with app_state.account_guard(self._account_generation):
             pass
         self.logger.info("PreLive Request")
-        response = self._session.get(url, params=params)
+        response = session.get(url, params=params)
         response.encoding = "utf-8"
         self.logger.info("PreLive Response")
         response = response.json()

@@ -1,5 +1,10 @@
+from typing import TYPE_CHECKING
+
 from startlive.core import app_state
 from startlive.core.workers.base import Presenter
+
+if TYPE_CHECKING:
+    from startlive.PySide.window.area_picker import AreaPickerPanel
 
 
 class FetchRecentAreaPresenter(Presenter):

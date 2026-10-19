@@ -20,7 +20,7 @@ class FetchLoginWorker(LongLiveWorker):
         self.logger = get_logger(self.__class__.__name__)
 
     def run(self, report_progress: Callable | None, *args, **kwargs):
-
+        session = self.require_session()
         check_url = "https://passport.bilibili.com/x/passport-login/web/qrcode/poll"
         while app_state.scan_status["qr_key"] is None and self.is_running:
             with app_state.account_guard(self._account_generation):
@@ -35,7 +35,7 @@ class FetchLoginWorker(LongLiveWorker):
             with app_state.account_guard(self._account_generation):
                 self.raise_if_cancelled()
             self.logger.info("QR poll Request")
-            response = self._session.get(check_url, params=params)
+            response = session.get(check_url, params=params)
             response.encoding = "utf-8"
             self.logger.info("QR poll Response")
             result = response.json()
@@ -52,7 +52,8 @@ class FetchLoginWorker(LongLiveWorker):
                     with app_state.account_guard(self._account_generation):
                         self.raise_if_cancelled()
                         app_state.scan_status["wait_for_confirm"] = True
-                    report_progress(LoginResult.QR_NOT_CONFIRMED)
+                    if report_progress is not None:
+                        report_progress(LoginResult.QR_NOT_CONFIRMED)
                     sleep(1)
                     continue
                 case 0:  # Login successful

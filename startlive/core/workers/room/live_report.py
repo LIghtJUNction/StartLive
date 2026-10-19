@@ -14,9 +14,7 @@ class ReportLiveDataWorker(BaseWorker):
         self.logger = get_logger(self.__class__.__name__)
 
     def run(self, report_progress: Callable | None, *args, **kwargs):
-        session = self._session
-        if session is None:
-            raise RuntimeError(f"{self.name} requires an HTTP session")
+        session = self.require_session()
         url = "https://api.live.bilibili.com/xlive/app-blink/v1/report/ReportData"
         params = livehime_sign({})
         params.update(

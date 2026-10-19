@@ -2,6 +2,13 @@
 from concurrent.futures import Future
 from pathlib import Path
 from threading import Thread
+from PIL import Image, ImageQt
+from PySide6.QtCore import QEvent, QEventLoop, QRect, Qt, QTimer, Slot
+from PySide6.QtGui import QAction, QActionGroup, QIcon, QImage, QPainter, QPixmap
+from PySide6.QtWidgets import (QApplication, QButtonGroup, QGraphicsBlurEffect,
+    QGraphicsPixmapItem, QGraphicsScene, QHBoxLayout, QLabel, QMenu,
+    QMessageBox, QStackedWidget, QSystemTrayIcon, QVBoxLayout, QWidget)
+from ..updater import VelopackUpdateController
 from typing import Optional
 from warnings import catch_warnings, simplefilter
 
@@ -84,7 +91,6 @@ class MainWindow(SingleInstanceWindow):
         gui_handler.recordUpdated.connect(self._log_viewer.append_line)
         self.logger = get_logger(self.__class__.__name__)
         self._bg_pixmap: QPixmap | None = None
-        self._bg_cache: QPixmap | None = None
         self._bg_cache: QPixmap | None = None
         self._blur_radius: float = 10.0
         self._opacity: float = 0.8
@@ -211,7 +217,8 @@ class MainWindow(SingleInstanceWindow):
         current_panel = self.panel
         server_thread = getattr(self, "_server_thread", None)
         self._logged_in = False
-        if app_state.obs_client is not None:
+        panel = self.panel
+        if app_state.obs_client is not None and panel is not None:
             ObsDaemonWorker.disconnect_obs()
             if current_panel is not None:
                 current_panel.obs_btn_state.obsDisconnected.emit()
@@ -326,6 +333,7 @@ class MainWindow(SingleInstanceWindow):
     def _init_http_server(self):
         self._server_started = False
         if self._host is not None and self._port is not None:
+            panel = self.require_panel()
             self._server_thread = HttpServerWorker(self._host, self._port)
             self._server_thread.signals.startLive.connect(self.panel.start_live)
             self._server_thread.signals.stopLive.connect(self.panel.stop_live)
@@ -484,9 +492,9 @@ class MainWindow(SingleInstanceWindow):
         painter.end()
 
     def changeEvent(self, event):
-        if event.type() == QEvent.Type.WindowStateChange:
-            if self.isMinimized():
-                QTimer.singleShot(0, self.hide)  # 延迟隐藏窗口
+        if (event.type() == QEvent.Type.WindowStateChange
+                and self.isMinimized()):
+            QTimer.singleShot(0, self.hide)  # 延迟隐藏窗口
         super().changeEvent(event)
 
     def closeEvent(self, event):
@@ -535,6 +543,12 @@ class MainWindow(SingleInstanceWindow):
                 )
             )
 
+    def require_panel(self) -> StreamConfigPanel:
+        panel = self.panel
+        if panel is None:
+            raise RuntimeError("MainWindow panel is not initialized")
+        return panel
+
     @Slot(int, bool)
     def _on_delete_cookies(self, target: int, is_empty: bool):
         QMessageBox.information(self, "账号退出", "账号退出成功")
@@ -543,7 +557,7 @@ class MainWindow(SingleInstanceWindow):
 
     @Slot()
     def _on_delete_settings(self):
-        self.panel.reset_obs_settings()
+        self.require_panel().reset_obs_settings()
         QMessageBox.information(self, "设置清空", "OBS连接设置清除成功")
 
     @Slot()
@@ -683,7 +697,7 @@ class MainWindow(SingleInstanceWindow):
 
     @staticmethod
     # Helper: Generate QR code image from URL
-    def generate_qr_code(data: str):
+    def generate_qr_code(data: str) -> Image.Image:
         qr = QRCode(box_size=4, border=1)
         qr.add_data(data)
         qr.make(fit=True)
@@ -691,11 +705,11 @@ class MainWindow(SingleInstanceWindow):
             img = qr.make_image(fill_color="black", back_color="white")
         else:
             img = qr.make_image(fill_color="white", back_color="black")
-        return img.convert("RGB")
+        return img.get_image().convert("RGB")
 
     @classmethod
     # Helper: Convert a PIL image to QPixmap for display in QLabel
-    def _qpixmap_from_str(cls, data: str):
+    def _qpixmap_from_str(cls, data: str) -> QPixmap:
         return QPixmap.fromImage(ImageQt.ImageQt(cls.generate_qr_code(data)))
 
     def update_qr_image(self, qr_url: str):
@@ -705,8 +719,9 @@ class MainWindow(SingleInstanceWindow):
         self.qr_label.setPixmap(self._qpixmap_from_str(qr_url))  # Show in UI
 
     def _after_login_success(self):
-        self.panel.parent_combo.clear()
-        self.panel.parent_combo.addItems(app_state.parent_area)
+        panel = self.require_panel()
+        panel.parent_combo.clear()
+        panel.parent_combo.addItems(app_state.parent_area)
         self._stack.setCurrentIndex(1)
         self._side_bar.btn_home.setChecked(True)
         if app_state.obs_settings.get("auto_connect", False):
@@ -764,13 +779,17 @@ class MainWindow(SingleInstanceWindow):
 
     @Slot(str, int)
     def popup_face_widget(self, face_url: str, auth_type: FaceAuthType):
+        panel = self.require_panel()
+        face_message = app_state.stream_status.face_message
+        if face_message is None:
+            raise RuntimeError("Face authentication message is unavailable")
         app_state.stream_status["required_face"] = False
-        self.panel.start_btn.setEnabled(True)
+        panel.start_btn.setEnabled(True)
         self.tray_start_live_action.setEnabled(True)
-        self.panel.stop_btn.setEnabled(False)
+        panel.stop_btn.setEnabled(False)
         self.tray_stop_live_action.setEnabled(False)
-        self.panel.parent_combo.setEnabled(True)
-        self.panel.child_combo.setEnabled(True)
+        panel.parent_combo.setEnabled(True)
+        panel.child_combo.setEnabled(True)
         self.face_window = FaceQRWidget(self)
         self.face_window.face_qr.setPixmap(self._qpixmap_from_str(face_url))
         auth_worker = FaceAuthWorker(FaceAuthPresenter(self.face_window), auth_type)
@@ -787,7 +806,7 @@ class MainWindow(SingleInstanceWindow):
 
     def _apply_global_qss(self) -> None:
         app = QApplication.instance()
-        if app is None:
+        if not isinstance(app, QApplication):
             return
 
         color_scheme = app.styleHints().colorScheme()
@@ -908,8 +927,13 @@ class MainWindow(SingleInstanceWindow):
 
         elif self._mode == BackgroundMode.COVER:
             scale = max(win_w / img_w, win_h / img_h)
-            scaled_w = int(img_w * scale)
-            scaled_h = int(img_h * scale)
+            try:
+                scaled_w = int(img_w * scale)
+                scaled_h = int(img_h * scale)
+            except (OverflowError, ValueError):
+                painter.end()
+                self._bg_cache = None
+                return
 
             scaled = img.scaled(
                 scaled_w,

@@ -10,6 +10,9 @@ from startlive.PySide.states import LoginState
 if TYPE_CHECKING:
     from startlive.PySide.window.stream_config import StreamConfigPanel
 
+if TYPE_CHECKING:
+    from startlive.PySide.window.stream_config import StreamConfigPanel
+
 
 class FetchPreLivePresenter(Presenter):
     def __init__(self, view: "StreamConfigPanel", state: LoginState) -> None:

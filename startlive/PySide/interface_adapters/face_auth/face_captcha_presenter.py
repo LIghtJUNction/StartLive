@@ -5,7 +5,7 @@ from startlive.core.workers.base import Presenter
 
 
 class FaceCaptchaPresenter(Presenter):
-    def __init__(self, view: "MainWindow", state: StreamState):
+    def __init__(self, view: object, state: StreamState):
         super().__init__()
         self._view = view
         self._state = state

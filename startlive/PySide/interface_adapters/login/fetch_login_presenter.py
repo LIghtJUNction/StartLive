@@ -1,3 +1,4 @@
+from startlive.PySide.interface_adapters import MainWindowView
 from startlive.PySide.interface_adapters.announce import FetchAnnouncePresenter
 from startlive.PySide.interface_adapters.area import FetchAreaPresenter
 from startlive.PySide.interface_adapters.login import TicketFetchPresenter
@@ -15,20 +16,21 @@ from startlive.core.workers.usernames import FetchUsernamesWorker
 
 
 class FetchLoginPresenter(Presenter):
-    def __init__(self, view: "MainWindow", state: LoginState):
+    def __init__(self, view: MainWindowView, state: LoginState):
         super().__init__()
         self._view = view
         self._state = state
 
     @staticmethod
-    def post_login(parent: "MainWindow", state: LoginState):
+    def post_login(parent: MainWindowView, state: LoginState):
         if app_state.scan_status["scanned"]:
+            panel = parent.require_panel()
             parent.add_thread(TicketFetchWorker(TicketFetchPresenter()))
             parent.add_thread(FetchRoomStatusWorker())
             parent.add_thread(
-                FetchPreLiveWorker(FetchPreLivePresenter(parent.panel, state))
+                FetchPreLiveWorker(FetchPreLivePresenter(panel, state))
             )
-            parent.add_thread(FetchAnnounceWorker(FetchAnnouncePresenter(parent.panel)))
+            parent.add_thread(FetchAnnounceWorker(FetchAnnouncePresenter(panel)))
             parent.add_thread(FetchAreaWorker(FetchAreaPresenter(state)))
 
     def prepare_success_view(self, login_result: LoginResult):

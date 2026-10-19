@@ -1,11 +1,12 @@
-from startlive.PySide.interface_adapters.login import FetchLoginPresenter
 from startlive.core import app_state
 from startlive.core.workers.base import Presenter
 from startlive.core.workers.usernames import FetchUsernamesWorker
+from startlive.PySide.interface_adapters import MainWindowView
+from startlive.PySide.interface_adapters.login import FetchLoginPresenter
 
 
 class CredentialManagerPresenter(Presenter):
-    def __init__(self, view: "MainWindow", state) -> None:
+    def __init__(self, view: MainWindowView, state) -> None:
         super().__init__()
         self._view = view
         self._state = state
@@ -14,6 +15,7 @@ class CredentialManagerPresenter(Presenter):
         if self._state is not self._view._login_state:
             return
         self._view.menu_bar._populate_account_menu()
+        panel = self._view.require_panel()
         FetchLoginPresenter.post_login(self._view, self._state)
         if not app_state.scan_status["is_new"]:
             fetch_usernames = FetchUsernamesWorker(
@@ -21,8 +23,8 @@ class CredentialManagerPresenter(Presenter):
             )
             self._view.add_thread(fetch_usernames)
         self._state.credentialLoaded.emit()
-        panel = self._view.panel
-        panel.host_input.setText(app_state.obs_settings.get("ip_addr", "localhost"))
+        panel.host_input.setText(
+            app_state.obs_settings.get("ip_addr", "localhost"))
         panel.port_input.setText(app_state.obs_settings.get("port", "4455"))
         panel.pass_input.setText(app_state.obs_settings.get("password", ""))
         panel.obs_auto_live_checkbox.setChecked(
@@ -37,8 +39,9 @@ class CredentialManagerPresenter(Presenter):
             return
         self._view.menu_bar._populate_account_menu()
         self._state.credentialLoaded.emit()
-        panel = self._view.panel
-        panel.host_input.setText(app_state.obs_settings.get("ip_addr", "localhost"))
+        panel = self._view.require_panel()
+        panel.host_input.setText(
+            app_state.obs_settings.get("ip_addr", "localhost"))
         panel.port_input.setText(app_state.obs_settings.get("port", "4455"))
         panel.pass_input.setText(app_state.obs_settings.get("password", ""))
         panel.obs_auto_live_checkbox.setChecked(

@@ -1,6 +1,7 @@
-from typing import Optional, Callable, Union, final
+from collections.abc import Callable
+from typing import final
 
-from requests import Session
+from requests.sessions import Session
 
 from startlive.core.app_state import create_session
 from startlive.core.constant import HeadersType
@@ -17,7 +18,7 @@ class BaseWorker:
         "on_exception",
     })
 
-    _session: Optional[Session]
+    _session: Session | None
     name: str
 
     def __init__(self, /, name: str, *, with_session: bool = True,
@@ -25,7 +26,7 @@ class BaseWorker:
                  defer_session: bool = False,
                  inherit_account_cookies: bool = True,
                  account_cookies: dict[str, str] | None = None,
-                 presenter: Optional[Union[Presenter, list[Presenter]]] = None):
+                 presenter: Presenter | list[Presenter] | None = None):
         super().__init__()
         self.name = name
         if isinstance(presenter, list):
@@ -63,6 +64,12 @@ class BaseWorker:
             raise TypeError(
                 f"{cls.__name__} Overriding {names} is not allowed"
             )
+
+    def require_session(self) -> Session:
+        """Return the worker HTTP session or fail clearly when disabled."""
+        if self._session is None:
+            raise RuntimeError(f"{self.name} requires an HTTP session")
+        return self._session
 
     @final
     def start(self, report_progress: Callable | None, *args, **kwargs):
