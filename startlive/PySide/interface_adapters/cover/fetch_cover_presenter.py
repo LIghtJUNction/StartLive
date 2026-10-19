@@ -6,7 +6,7 @@ from startlive.core import app_state
 from startlive.core.workers.base import Presenter
 
 if TYPE_CHECKING:
-    from src.PySide.window.cover_crop import CoverCropWidget
+    from startlive.PySide.window.cover_crop import CoverCropWidget
 
 
 class FetchCoverPresenter(Presenter):

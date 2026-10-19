@@ -1,21 +1,26 @@
 from threading import Condition
+from typing import TYPE_CHECKING
 
-from startlive.PySide.log import get_logger
-from startlive.PySide.states import ObsBtnState
 from startlive.core import app_state
 from startlive.core.workers.base import Presenter
 from startlive.core.workers.obs_ws import ObsDaemonWorker
+from startlive.PySide.log import get_logger
+from startlive.PySide.states import ObsBtnState
+
+if TYPE_CHECKING:
+    from startlive.PySide.window.stream_config import StreamConfigPanel
 
 
 class ObsConnectorPresenter(Presenter):
-    def __init__(self, view: "StreamConfigPanel", state: ObsBtnState, cond: Condition):
+    def __init__(self, view: "StreamConfigPanel", state: ObsBtnState,
+                 cond: Condition) -> None:
         super().__init__()
         self._view = view
         self._state = state
         self._cond = cond
         self.logger = get_logger(self.__class__.__name__)
 
-    def prepare_success_view(self):
+    def prepare_success_view(self) -> None:
         if app_state.obs_client is not None:
             self._state.obsConnected.emit()
             self.logger.info("OBS connected")
@@ -25,7 +30,7 @@ class ObsConnectorPresenter(Presenter):
 
             self._view.parent_window.add_thread(ObsDaemonWorker(ObsDaemonPresenter()))
 
-    def prepare_fail_view(self, exception: Exception):
+    def prepare_fail_view(self, exception: Exception) -> None:
         self.logger.error("OBS connect failed.")
         self._view.obs_auto_live_checkbox.setEnabled(False)
         with self._cond:
@@ -34,5 +39,5 @@ class ObsConnectorPresenter(Presenter):
             self._cond.notify_all()
         self._state.obsDisconnected.emit()
 
-    def prepare_progress_view(self):
+    def prepare_progress_view(self) -> None:
         self._state.obsConnecting.emit()
