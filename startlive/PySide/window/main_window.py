@@ -5,22 +5,6 @@ from threading import Thread
 from typing import Optional
 from warnings import catch_warnings, simplefilter
 
-# package import
-from PIL import ImageQt
-from PySide6.QtCore import (QEvent, QTimer, Slot, QEventLoop)
-from PySide6.QtCore import Qt, QRect
-from PySide6.QtGui import QAction, QIcon, QActionGroup
-from PySide6.QtGui import QPixmap, QImage, QPainter
-from PySide6.QtWidgets import (QApplication,
-                               QWidget,
-                               QVBoxLayout,
-                               QHBoxLayout,
-                               QLabel,
-                               QMessageBox, QSystemTrayIcon, QMenu,
-                               QStackedWidget, QButtonGroup,
-                               QGraphicsBlurEffect, QGraphicsScene,
-                               QGraphicsPixmapItem
-                               )
 from darkdetect import isLight
 from qdarktheme import setup_theme
 from qrcode.main import QRCode
@@ -57,7 +41,6 @@ from startlive.core.workers.obs_ws import ObsDaemonWorker
 from .face_qr import FaceQRWidget
 from .settings_page import SettingsPage
 from .stream_config import StreamConfigPanel
-from ..updater import VelopackUpdateController
 
 
 # Main GUI window
@@ -71,7 +54,7 @@ class MainWindow(SingleInstanceWindow):
     _logged_in: bool
     _cred_deleted: bool
     _no_const_update: bool
-    _new_version_str: Optional[str]
+    _new_version_str: str | None
     _download_per: int
     _server_started: bool
     _server_thread: Optional[HttpServerWorker]
@@ -86,13 +69,12 @@ class MainWindow(SingleInstanceWindow):
     qr_label: QLabel
     panel: StreamConfigPanel | None
     credential_worker: CredentialManagerWorker
-    login_worker: Optional[FetchLoginWorker]
-    face_window: Optional[FaceQRWidget]
+    login_worker: FetchLoginWorker | None
+    face_window: FaceQRWidget | None
     tray_start_live_action: QAction
     tray_stop_live_action: QAction
 
-    def __init__(self, host, port, first_run, no_const_update, /,
-                 base_path: Path):
+    def __init__(self, host, port, first_run, no_const_update, /, base_path: Path):
         super().__init__()
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
         self.setAttribute(Qt.WidgetAttribute.WA_QuitOnClose, True)
@@ -139,22 +121,21 @@ class MainWindow(SingleInstanceWindow):
         ]
         for btn, idx in mapping:
             btn_group.addButton(btn)
-            btn.clicked.connect(
-                lambda _=False, i=idx: self._stack_switch(i))
+            btn.clicked.connect(lambda _=False, i=idx: self._stack_switch(i))
         self._side_bar.btn_home.setChecked(True)
         self._settings_page = SettingsPage(self)
         self.setGeometry(300, 200, 610, 470)
         self.tray_icon = QSystemTrayIcon(self)
         # https://nuitka.net/user-documentation/common-issue-solutions.html#onefile-finding-files
         if app_state.app_settings["custom_tray_icon"]:
-            self.tray_icon.setIcon(QIcon(
-                str(app_state.app_settings["custom_tray_icon"])))
+            self.tray_icon.setIcon(
+                QIcon(str(app_state.app_settings["custom_tray_icon"]))
+            )
         else:
             self.tray_icon.setIcon(QIcon(
                 str(self._resources_path / "icon_left.ico")))
         if app_state.app_settings["custom_tray_hint"]:
-            self.tray_icon.setToolTip(
-                app_state.app_settings["custom_tray_hint"])
+            self.tray_icon.setToolTip(app_state.app_settings["custom_tray_hint"])
         else:
             self.tray_icon.setToolTip("你所热爱的 就是你的生活")
         self.tray_icon.setVisible(True)
@@ -204,15 +185,15 @@ class MainWindow(SingleInstanceWindow):
         self.setup_ui()
         self._init_http_server()
         self.update_controller = VelopackUpdateController(
-            "https://startlive.bydfk.com/",
-            self,
-            self._update_download_per
+            "https://startlive.bydfk.com/", self, self._update_download_per
         )
 
         self.update_controller.update_ready.connect(
-            self.update_controller.apply_and_restart)
+            self.update_controller.apply_and_restart
+        )
         self.update_controller.failed.connect(
-            lambda m: self.logger.warning(f"Automatic update failed: {m}"))
+            lambda m: self.logger.warning(f"Automatic update failed: {m}")
+        )
 
         # 等待窗口初始化完成后再检查。
         QTimer.singleShot(
@@ -284,10 +265,12 @@ class MainWindow(SingleInstanceWindow):
             self.logger.info("Constant update disabled.")
             app_state.scan_status["const_updated"] = True
         elif not app_state.scan_status["const_updated"]:
-            self.add_thread(ConstantUpdateWorker(
-                ConstantUpdatePresenter(self._login_state)))
-            self.add_thread(VersionCheckerWorker(
-                VersionCheckerPresenter(self._login_state)))
+            self.add_thread(
+                ConstantUpdateWorker(ConstantUpdatePresenter(self._login_state))
+            )
+            self.add_thread(
+                VersionCheckerWorker(VersionCheckerPresenter(self._login_state))
+            )
         # Styling and alignment
         for label in [self.login_label, self.status_label]:
             label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -312,11 +295,9 @@ class MainWindow(SingleInstanceWindow):
             self._stack.removeWidget(w)
         self._stack.insertWidget(WidgetIndex.WIDGET_PANEL, self.panel)
         if self._stack.indexOf(self._log_viewer) == -1:
-            self._stack.insertWidget(WidgetIndex.WIDGET_LOGGING,
-                                     self._log_viewer)
+            self._stack.insertWidget(WidgetIndex.WIDGET_LOGGING, self._log_viewer)
         if self._stack.indexOf(self._settings_page) == -1:
-            self._stack.insertWidget(WidgetIndex.WIDGET_SETTINGS,
-                                     self._settings_page)
+            self._stack.insertWidget(WidgetIndex.WIDGET_SETTINGS, self._settings_page)
         self._stack.setCurrentIndex(WidgetIndex.WIDGET_LOGIN)
         self._side_bar.btn_home.setChecked(True)
 
@@ -339,7 +320,7 @@ class MainWindow(SingleInstanceWindow):
         self.login_worker = None
         self.add_thread(self.credential_worker)
 
-        self.face_window: Optional[FaceQRWidget] = None
+        self.face_window: FaceQRWidget | None = None
 
     def _init_http_server(self):
         self._server_started = False
@@ -347,16 +328,18 @@ class MainWindow(SingleInstanceWindow):
             self._server_thread = HttpServerWorker(self._host, self._port)
             self._server_thread.signals.startLive.connect(self.panel.start_live)
             self._server_thread.signals.stopLive.connect(self.panel.stop_live)
-            self._server_thread.signals.exception.connect(
-                self._http_error_handler)
+            self._server_thread.signals.exception.connect(self._http_error_handler)
             return True
         else:
             self._server_thread = None
         return False
 
     def _start_http_server(self):
-        if (self._server_thread is not None and not self._server_started and
-                self._logged_in):
+        if (
+            self._server_thread is not None
+            and not self._server_started
+            and self._logged_in
+        ):
             self._server_thread.start()
             self._server_started = True
             self._rebuild_title()
@@ -371,8 +354,9 @@ class MainWindow(SingleInstanceWindow):
             self._server_started = False
             self._rebuild_title()
 
-    def add_thread(self, worker: BaseWorker | LongLiveWorker, /,
-                   on_progress: bool = False):
+    def add_thread(
+        self, worker: BaseWorker | LongLiveWorker, /, on_progress: bool = False
+    ):
         worker.add_presenter(self._gui_presenter)
         self._thread_manager.submit(worker, on_progress=on_progress)
 
@@ -425,9 +409,7 @@ class MainWindow(SingleInstanceWindow):
         #
         # 暂时不处理鼠标和键盘输入，防止用户在 restart 尚未完成时
         # 再次触发 setup_ui()、账号切换或其他会提交 Worker 的操作。
-        event_loop.exec(
-            QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents
-        )
+        event_loop.exec(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
 
         shutdown_thread.join()
         completion.result()
@@ -445,8 +427,7 @@ class MainWindow(SingleInstanceWindow):
 
     @Slot(Exception)
     def _http_error_handler(self, e: Exception):
-        QMessageBox.critical(self, f"Web服务线程错误",
-                             repr(e))
+        QMessageBox.critical(self, "Web服务线程错误", repr(e))
         self._stop_http_server()
 
     @Slot(str)
@@ -472,14 +453,18 @@ class MainWindow(SingleInstanceWindow):
         else:
             _web_server_title = ""
         self.setWindowTitle(
-            f"{_new_version_title}{_download_title}{self._base_title}{_web_server_title}")
+            f"{_new_version_title}{_download_title}{self._base_title}{_web_server_title}"
+        )
 
     def show(self, /):
         super().show()
         if self._first_run:
-            QMessageBox.information(self, "安装完成",
-                                    f"StartLive开播器 版本{VERSION} 安装成功\n"
-                                    "之后再运行请使用桌面或开始菜单里的快捷方式。")
+            QMessageBox.information(
+                self,
+                "安装完成",
+                f"StartLive开播器 版本{VERSION} 安装成功\n"
+                "之后再运行请使用桌面或开始菜单里的快捷方式。",
+            )
             self._first_run = False
 
     def resizeEvent(self, event):
@@ -543,8 +528,11 @@ class MainWindow(SingleInstanceWindow):
             return
         self._settings_page.delay_edit.setText("")
         if self._logged_in:
-            self.add_thread(FetchStreamTimeShiftWorker(
-                FetchTimeShiftPresenter(self._settings_page.delay_edit)))
+            self.add_thread(
+                FetchStreamTimeShiftWorker(
+                    FetchTimeShiftPresenter(self._settings_page.delay_edit)
+                )
+            )
 
     @Slot(int, bool)
     def _on_delete_cookies(self, target: int, is_empty: bool):
@@ -563,15 +551,15 @@ class MainWindow(SingleInstanceWindow):
         self.tray_icon.setIcon(QIcon(
             str(self._resources_path / "icon_left.ico")))
         self.tray_icon.setToolTip("你所热爱的 就是你的生活")
-        QMessageBox.information(self, "设置清空", "APP设置清除成功\n"
-                                                  "字体相关设置需要重启生效")
+        QMessageBox.information(
+            self, "设置清空", "APP设置清除成功\n字体相关设置需要重启生效"
+        )
 
     @Slot(bool)
     def _on_delete_cred(self, _cred_deleted):
         self.menu_bar.shutdown_pk_window()
         self._cred_deleted = _cred_deleted
-        QMessageBox.information(self, "凭据清空",
-                                "已清空全部凭据, 程序即将退出")
+        QMessageBox.information(self, "凭据清空", "已清空全部凭据, 程序即将退出")
         self._thread_manager.shutdown(wait=False)
         QApplication.quit()
 
@@ -593,15 +581,23 @@ class MainWindow(SingleInstanceWindow):
         :return: A boolean indicating if the system is ready to switch accounts.
         :rtype: bool
         """
-        return app_state.cookie_state.is_exhausted() or all(
-            [app_state.scan_status["scanned"],
-             app_state.scan_status["area_updated"],
-             app_state.scan_status["room_updated"],
-             app_state.scan_status["const_updated"],
-             app_state.scan_status["announce_updated"]
-             ]) or (app_state.scan_status["cred_loaded"] and not
-        app_state.scan_status["expired"] and not app_state.scan_status[
-            "scanned"])
+        return (
+            app_state.cookie_state.is_exhausted()
+            or all(
+                [
+                    app_state.scan_status["scanned"],
+                    app_state.scan_status["area_updated"],
+                    app_state.scan_status["room_updated"],
+                    app_state.scan_status["const_updated"],
+                    app_state.scan_status["announce_updated"],
+                ]
+            )
+            or (
+                app_state.scan_status["cred_loaded"]
+                and not app_state.scan_status["expired"]
+                and not app_state.scan_status["scanned"]
+            )
+        )
 
     @Slot()
     def _populate_tray_menu(self):
@@ -611,7 +607,8 @@ class MainWindow(SingleInstanceWindow):
             self.tray_curr_user.setEnabled(False)
             return
         self.tray_curr_user.setText(
-            f"当前账号：{app_state.usernames[cookie_indices[app_state.cookie_state.current_cookie_idx]]}")
+            f"当前账号：{app_state.usernames[cookie_indices[app_state.cookie_state.current_cookie_idx]]}"
+        )
         self.tray_curr_user.setEnabled(True)
 
     @Slot()
@@ -656,15 +653,14 @@ class MainWindow(SingleInstanceWindow):
             self.status_label.clicked.disconnect(self._refresh_qr)
             self.login_worker.stop()
             # Reset status
-            app_state.scan_status.update({
-                "qr_key": None, "qr_url": None,
-                "wait_for_confirm": False
-            })
+            app_state.scan_status.update(
+                {"qr_key": None, "qr_url": None, "wait_for_confirm": False}
+            )
         self.add_thread(FetchQRWorker(FetchQRPresenter(self)))
         _login_presenter = FetchLoginPresenter(self, self._login_state)
         self.add_thread(
             FetchLoginWorker(FetchLoginPresenter(self, self._login_state)),
-            on_progress=True
+            on_progress=True,
         )
         self.login_label.setText("请使用手机扫码登录：")
         self.status_label.setText("等待扫码中...")
@@ -707,9 +703,9 @@ class MainWindow(SingleInstanceWindow):
         if app_state.obs_settings.get("auto_connect", False):
             self.panel.connect_btn.click()
         self.panel.parent_combo.setCurrentText(
-            app_state.room_info.get("parent_area", "请选择"))
-        self.panel.child_combo.setCurrentText(
-            app_state.room_info.get("area", ""))
+            app_state.room_info.get("parent_area", "请选择")
+        )
+        self.panel.child_combo.setCurrentText(app_state.room_info.get("area", ""))
         self.panel.enable_child_combo_autosave(True)
         self._logged_in = True
         self._start_http_server()
@@ -725,8 +721,10 @@ class MainWindow(SingleInstanceWindow):
             login_hint1 = "分区已更新！"
         else:
             login_hint1 = "正在更新分区..."
-        if app_state.scan_status["room_updated"] and app_state.scan_status[
-            "announce_updated"]:
+        if (
+            app_state.scan_status["room_updated"]
+            and app_state.scan_status["announce_updated"]
+        ):
             login_hint2 = "房间信息已更新！"
         else:
             login_hint2 = "正在更新房间信息..."
@@ -736,10 +734,12 @@ class MainWindow(SingleInstanceWindow):
             login_hint3 = "正在更新请求参数..."
         login_hint = f"{login_hint1}\n{login_hint2}\n{login_hint3}"
         self.login_label.setText(login_hint)
-        if not app_state.scan_status["area_updated"] or \
-                not app_state.scan_status["room_updated"] or \
-                not app_state.scan_status["const_updated"] or \
-                not app_state.scan_status["announce_updated"]:
+        if (
+            not app_state.scan_status["area_updated"]
+            or not app_state.scan_status["room_updated"]
+            or not app_state.scan_status["const_updated"]
+            or not app_state.scan_status["announce_updated"]
+        ):
             return
         self._after_login_success()
 
@@ -764,14 +764,16 @@ class MainWindow(SingleInstanceWindow):
         self.panel.child_combo.setEnabled(True)
         self.face_window = FaceQRWidget(self)
         self.face_window.face_qr.setPixmap(self._qpixmap_from_str(face_url))
-        auth_worker = FaceAuthWorker(FaceAuthPresenter(self.face_window),
-                                     auth_type)
+        auth_worker = FaceAuthWorker(FaceAuthPresenter(self.face_window), auth_type)
         self.face_window.destroyed.connect(auth_worker.stop)
         self.add_thread(auth_worker)
         self.add_thread(
-            ReportFaceRecognitionWorker(app_state.room_info["area_code"],
-                                        app_state.stream_status.face_message,
-                                        auth_type))
+            ReportFaceRecognitionWorker(
+                app_state.room_info["area_code"],
+                app_state.stream_status.face_message,
+                auth_type,
+            )
+        )
         self.face_window.show()
 
     def _apply_global_qss(self) -> None:

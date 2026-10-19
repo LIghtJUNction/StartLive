@@ -4,13 +4,18 @@ from startlive.core.constant.ui import (
     CROP_LABEL_SNAP_MARGIN,
 )
 from PySide6.QtCore import (
-    Qt, QRect, QPoint, QSize, QVariantAnimation, QEasingCurve, QTimer, Signal,
-    Slot
+    QEasingCurve,
+    QPoint,
+    QRect,
+    QSize,
+    Qt,
+    QTimer,
+    QVariantAnimation,
+    Signal,
+    Slot,
 )
-from PySide6.QtGui import QPixmap, QPainter, QPen, QColor, QGuiApplication
-from PySide6.QtWidgets import (
-    QLabel, QRubberBand
-)
+from PySide6.QtGui import QColor, QGuiApplication, QPainter, QPen, QPixmap
+from PySide6.QtWidgets import QLabel, QRubberBand
 
 
 class CropLabel(QLabel):
@@ -105,9 +110,10 @@ class CropLabel(QLabel):
 
         # 只在这里缩放一次并缓存（高质量缩放成本转移到低频路径）
         self._scaled_pixmap = self._orig_pixmap.scaled(
-            int(new_w * dpr), int(new_h * dpr),
+            int(new_w * dpr),
+            int(new_h * dpr),
             Qt.AspectRatioMode.IgnoreAspectRatio,
-            Qt.TransformationMode.SmoothTransformation
+            Qt.TransformationMode.SmoothTransformation,
         )
         self._scaled_pixmap.setDevicePixelRatio(dpr)
         self._scaled_key = key
@@ -155,8 +161,7 @@ class CropLabel(QLabel):
         cx = self.crop_rect.x() - self._disp_rect.x()
         cy = self.crop_rect.y() - self._disp_rect.y()
         cw, ch = self.crop_rect.width(), self.crop_rect.height()
-        return QRect(round(cx * sx), round(cy * sy),
-                     round(cw * sx), round(ch * sy))
+        return QRect(round(cx * sx), round(cy * sy), round(cw * sx), round(ch * sy))
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -176,16 +181,15 @@ class CropLabel(QLabel):
             painter.setBrush(Qt.GlobalColor.blue)
             self._draw_corner_l(painter)
 
-    def _schedule_dirty_update(self, new_rect: QRect,
-                               old_rect: QRect | None = None):
+    def _schedule_dirty_update(self, new_rect: QRect, old_rect: QRect | None = None):
         margin = self.HANDLE_LENGTH + self.HANDLE_WIDTH
         dirty = new_rect.adjusted(-margin, -margin, margin, margin)
         if old_rect:
-            dirty = dirty.united(
-                old_rect.adjusted(-margin, -margin, margin, margin))
+            dirty = dirty.united(old_rect.adjusted(-margin, -margin, margin, margin))
 
-        self._pending_dirty = dirty if self._pending_dirty is None else self._pending_dirty.united(
-            dirty)
+        self._pending_dirty = (
+            dirty if self._pending_dirty is None else self._pending_dirty.united(dirty)
+        )
         if not self._repaint_timer.isActive():
             self._repaint_timer.timeout.connect(self._flush_dirty_update)
             self._repaint_timer.start()
@@ -263,8 +267,9 @@ class CropLabel(QLabel):
             return
 
         if self.dragging or self.resizing:
-            base_rect = QRect(self.origin, raw_pos).normalized().intersected(
-                self._disp_rect)
+            base_rect = (
+                QRect(self.origin, raw_pos).normalized().intersected(self._disp_rect)
+            )
             rect = self._snap_and_keep_aspect(base_rect)
             self.crop_rect = rect
             self.rubber.setGeometry(rect)
@@ -278,7 +283,8 @@ class CropLabel(QLabel):
         self._pending_dirty = None
         self._repaint_timer.stop()
         if event.button() == Qt.MouseButton.LeftButton and (
-                self.dragging or self.resizing or self.moving):
+            self.dragging or self.resizing or self.moving
+        ):
             self.dragging = self.resizing = self.moving = False
         else:
             return super().mouseReleaseEvent(event)
@@ -293,8 +299,7 @@ class CropLabel(QLabel):
         # maximize based on mouse position if no selected rect
         if self.crop_rect.isNull():
             center = self._clamp(pos)
-            target_rect = self._largest_rect_inside(self._disp_rect,
-                                                    center=center)
+            target_rect = self._largest_rect_inside(self._disp_rect, center=center)
         else:
             # if double-clicked on corner points
             idx = self._hit_handle(pos)
@@ -304,13 +309,11 @@ class CropLabel(QLabel):
             elif self.crop_rect.contains(pos):
                 # maximize based on the current rect center
                 center = self.crop_rect.center()
-                target_rect = self._largest_rect_inside(self._disp_rect,
-                                                        center=center)
+                target_rect = self._largest_rect_inside(self._disp_rect, center=center)
             else:
                 # new maximized rect when outside current rect
                 center = self._clamp(pos)
-                target_rect = self._largest_rect_inside(self._disp_rect,
-                                                        center=center)
+                target_rect = self._largest_rect_inside(self._disp_rect, center=center)
 
         self._animate_to(target_rect)
         return
@@ -386,9 +389,8 @@ class CropLabel(QLabel):
             return None
         for idx, corner in enumerate(self._corners(self.crop_rect)):
             hit = QRect(
-                corner - QPoint(self.HANDLE_LENGTH // 2,
-                                self.HANDLE_LENGTH // 2),
-                QSize(self.HANDLE_LENGTH, self.HANDLE_LENGTH)
+                corner - QPoint(self.HANDLE_LENGTH // 2, self.HANDLE_LENGTH // 2),
+                QSize(self.HANDLE_LENGTH, self.HANDLE_LENGTH),
             )
             if hit.contains(pos):
                 return idx
@@ -396,12 +398,12 @@ class CropLabel(QLabel):
 
     @staticmethod
     def _corners(rect: QRect) -> list[QPoint]:
-        return [rect.topLeft(), rect.topRight(), rect.bottomRight(),
-                rect.bottomLeft()]
+        return [rect.topLeft(), rect.topRight(), rect.bottomRight(), rect.bottomLeft()]
 
     @staticmethod
-    def _fix_aspect_point(fixed_pt: QPoint, raw_pt: QPoint,
-                          w_ratio: int, h_ratio: int) -> QPoint:
+    def _fix_aspect_point(
+        fixed_pt: QPoint, raw_pt: QPoint, w_ratio: int, h_ratio: int
+    ) -> QPoint:
         """
         Adjusts a point's position relative to a fixed point while maintaining a specific
         aspect ratio defined by width and height ratios. The method computes the position
@@ -442,10 +444,8 @@ class CropLabel(QLabel):
                  to fit within the defined boundaries.
         """
         if not self._disp_rect.isNull():
-            x = max(self._disp_rect.left(),
-                    min(self._disp_rect.right(), pt.x()))
-            y = max(self._disp_rect.top(),
-                    min(self._disp_rect.bottom(), pt.y()))
+            x = max(self._disp_rect.left(), min(self._disp_rect.right(), pt.x()))
+            y = max(self._disp_rect.top(), min(self._disp_rect.bottom(), pt.y()))
         else:
             x = max(0, min(self.width(), pt.x()))
             y = max(0, min(self.height(), pt.y()))
@@ -453,8 +453,10 @@ class CropLabel(QLabel):
 
     def _farthest_corner(self, fixed_pt: QPoint, rect: QRect) -> QPoint:
         corners = self._corners(rect)
-        return max(corners, key=lambda p: (p.x() - fixed_pt.x()) ** 2 + (
-                p.y() - fixed_pt.y()) ** 2)
+        return max(
+            corners,
+            key=lambda p: (p.x() - fixed_pt.x()) ** 2 + (p.y() - fixed_pt.y()) ** 2,
+        )
 
     def _snap_and_keep_aspect(self, raw_rect: QRect) -> QRect:
         """
@@ -491,8 +493,9 @@ class CropLabel(QLabel):
         rect = QRect(fixed_pt, new_pt).normalized().intersected(dr)
         return rect
 
-    def _largest_rect_inside(self, bounds: QRect,
-                             center: QPoint | None = None) -> QRect:
+    def _largest_rect_inside(
+        self, bounds: QRect, center: QPoint | None = None
+    ) -> QRect:
         """
         Calculates the largest rectangle that can fit inside the given bounds while maintaining
         the aspect ratio specified by the `aspect_ratio` property. Optionally positions the

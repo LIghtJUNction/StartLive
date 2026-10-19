@@ -26,11 +26,10 @@ class FetchLoginPresenter(Presenter):
             parent.add_thread(TicketFetchWorker(TicketFetchPresenter()))
             parent.add_thread(FetchRoomStatusWorker())
             parent.add_thread(
-                FetchPreLiveWorker(FetchPreLivePresenter(parent.panel, state)))
-            parent.add_thread(
-                FetchAnnounceWorker(FetchAnnouncePresenter(parent.panel)))
-            parent.add_thread(
-                FetchAreaWorker(FetchAreaPresenter(state)))
+                FetchPreLiveWorker(FetchPreLivePresenter(parent.panel, state))
+            )
+            parent.add_thread(FetchAnnounceWorker(FetchAnnouncePresenter(parent.panel)))
+            parent.add_thread(FetchAreaWorker(FetchAreaPresenter(state)))
 
     def prepare_success_view(self, login_result: LoginResult):
         if self._state is not self._view._login_state:
@@ -45,8 +44,7 @@ class FetchLoginPresenter(Presenter):
             case LoginResult.QR_EXPIRED:
                 self._state.qrExpired.emit()
 
-    def prepare_fail_view(self, exception: Exception):
-        ...
+    def prepare_fail_view(self, exception: Exception): ...
 
     def prepare_progress_view(self, res: LoginResult):
         if self._state is not self._view._login_state:

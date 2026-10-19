@@ -19,19 +19,18 @@ class CredentialManagerPresenter(Presenter):
             fetch_usernames = FetchUsernamesWorker(
                 app_state.cookie_indices[cookie_index]
             )
-            self._view.add_thread(
-                fetch_usernames
-            )
+            self._view.add_thread(fetch_usernames)
         self._state.credentialLoaded.emit()
         panel = self._view.panel
-        panel.host_input.setText(
-            app_state.obs_settings.get("ip_addr", "localhost"))
+        panel.host_input.setText(app_state.obs_settings.get("ip_addr", "localhost"))
         panel.port_input.setText(app_state.obs_settings.get("port", "4455"))
         panel.pass_input.setText(app_state.obs_settings.get("password", ""))
         panel.obs_auto_live_checkbox.setChecked(
-            app_state.obs_settings.get("auto_live", False))
+            app_state.obs_settings.get("auto_live", False)
+        )
         panel.obs_auto_connect_checkbox.setChecked(
-            app_state.obs_settings.get("auto_connect", False))
+            app_state.obs_settings.get("auto_connect", False)
+        )
 
     def prepare_fail_view(self, exception: Exception):
         if self._state is not self._view._login_state:
@@ -39,13 +38,14 @@ class CredentialManagerPresenter(Presenter):
         self._view.menu_bar._populate_account_menu()
         self._state.credentialLoaded.emit()
         panel = self._view.panel
-        panel.host_input.setText(
-            app_state.obs_settings.get("ip_addr", "localhost"))
+        panel.host_input.setText(app_state.obs_settings.get("ip_addr", "localhost"))
         panel.port_input.setText(app_state.obs_settings.get("port", "4455"))
         panel.pass_input.setText(app_state.obs_settings.get("password", ""))
         panel.obs_auto_live_checkbox.setChecked(
-            app_state.obs_settings.get("auto_live", False))
+            app_state.obs_settings.get("auto_live", False)
+        )
         panel.obs_auto_connect_checkbox.setChecked(
-            app_state.obs_settings.get("auto_connect", False))
+            app_state.obs_settings.get("auto_connect", False)
+        )
 
     def prepare_progress_view(self, *args, **kwargs): ...

@@ -14,7 +14,8 @@ class GUIPresenter(Presenter):
     def prepare_success_view(self, *args, **kwargs): ...
 
     def prepare_fail_view(self, exception: WorkerException):
-        QMessageBox.critical(self._view, f"{exception.name}线程错误",
-                             repr(exception.real_exc))
+        QMessageBox.critical(
+            self._view, f"{exception.name}线程错误", repr(exception.real_exc)
+        )
 
     def prepare_progress_view(self, *args, **kwargs): ...

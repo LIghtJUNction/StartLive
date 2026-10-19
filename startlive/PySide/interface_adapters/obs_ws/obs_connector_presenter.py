@@ -8,8 +8,7 @@ from startlive.core.workers.obs_ws import ObsDaemonWorker
 
 
 class ObsConnectorPresenter(Presenter):
-    def __init__(self, view: "StreamConfigPanel", state: ObsBtnState,
-                 cond: Condition):
+    def __init__(self, view: "StreamConfigPanel", state: ObsBtnState, cond: Condition):
         super().__init__()
         self._view = view
         self._state = state
@@ -24,11 +23,10 @@ class ObsConnectorPresenter(Presenter):
             from startlive.PySide.interface_adapters.obs_ws import \
                 ObsDaemonPresenter
 
-            self._view.parent_window.add_thread(
-                ObsDaemonWorker(ObsDaemonPresenter()))
+            self._view.parent_window.add_thread(ObsDaemonWorker(ObsDaemonPresenter()))
 
     def prepare_fail_view(self, exception: Exception):
-        self.logger.error(f"OBS connect failed.")
+        self.logger.error("OBS connect failed.")
         self._view.obs_auto_live_checkbox.setEnabled(False)
         with self._cond:
             app_state.obs_op = False

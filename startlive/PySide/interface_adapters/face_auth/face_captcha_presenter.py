@@ -12,7 +12,8 @@ class FaceCaptchaPresenter(Presenter):
 
     def prepare_success_view(self):
         self._state.faceRequired.emit(
-            app_state.stream_status["face_url"], FaceAuthType.V2)
+            app_state.stream_status["face_url"], FaceAuthType.V2
+        )
 
     def prepare_fail_view(self, exception: Exception): ...
 

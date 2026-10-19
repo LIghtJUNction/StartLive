@@ -21,13 +21,11 @@ class HttpServerWorker(QThread):
         try:
             handler = self.make_handler()
             self.httpd = HTTPServer((self.host, self.port), handler)
-            self.logger.info(
-                f"HTTP Server running on http://{self.host}:{self.port}")
+            self.logger.info(f"HTTP Server running on http://{self.host}:{self.port}")
             self.httpd.serve_forever()
         except Exception as e:
-            self.logger.error(f"HTTP Server failed to start")
-            self.logger.error(
-                format_exception(type(e), e, e.__traceback__))
+            self.logger.error("HTTP Server failed to start")
+            self.logger.error(format_exception(type(e), e, e.__traceback__))
             self.signals.exception.emit(e)
 
     def make_handler(self):
@@ -47,7 +45,7 @@ class HttpServerWorker(QThread):
                     getattr(signals, signal_name).emit()
                     self.send_response(200)
                     self.end_headers()
-                    self.wfile.write(b'OK')
+                    self.wfile.write(b"OK")
                 else:
                     self.send_response(404)
                     self.end_headers()
@@ -59,6 +57,6 @@ class HttpServerWorker(QThread):
         return EmitSignalHandler
 
     def stop(self):
-        if hasattr(self, 'httpd'):
+        if hasattr(self, "httpd"):
             self.httpd.shutdown()
             self.httpd.server_close()

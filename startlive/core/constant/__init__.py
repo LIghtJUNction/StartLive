@@ -1,4 +1,4 @@
-from enum import unique, IntEnum, StrEnum
+from enum import IntEnum, StrEnum, unique
 
 from ._version import __version__
 
@@ -115,9 +115,9 @@ HEADERS_WEB = {
     "Connection": "keep-alive",
     "Origin": "https://live.bilibili.com",
     "Referer": "https://live.bilibili.com/",
-    "sec-ch-ua": "\"Chromium\";v=\"105\"",
+    "sec-ch-ua": '"Chromium";v="105"',
     "sec-ch-ua-mobile": "?0",
-    "sec-ch-ua-platform": "\"Windows\"",
+    "sec-ch-ua-platform": '"Windows"',
     "Sec-Fetch-Site": "same-site",
     "Sec-Fetch-Mode": "cors",
     "Sec-Fetch-Dest": "empty",

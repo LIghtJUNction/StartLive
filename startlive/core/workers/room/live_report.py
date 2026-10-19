@@ -1,5 +1,5 @@
+from collections.abc import Callable
 from datetime import datetime
-from typing import Callable
 
 from startlive.PySide.log import get_logger
 from startlive.core import app_state
@@ -16,16 +16,18 @@ class ReportLiveDataWorker(BaseWorker):
     def run(self, report_progress: Callable | None, *args, **kwargs):
         url = "https://api.live.bilibili.com/xlive/app-blink/v1/report/ReportData"
         params = livehime_sign({})
-        params.update({
-            "csrf": app_state.cookies_dict["bili_jct"],
-            "csrf_token": app_state.cookies_dict["bili_jct"]
-        })
+        params.update(
+            {
+                "csrf": app_state.cookies_dict["bili_jct"],
+                "csrf_token": app_state.cookies_dict["bili_jct"],
+            }
+        )
         params = order_payload(params)
         report_data = {
             "broad_type": "0",
             "cover": app_state.room_info.cover_url,
             "ctime": datetime.now().strftime("%Y/%m/%d %H:%M:%S"),
-            "definition": "{\"code_rate\":\"3000\",\"frame_rate\":\"60\",\"resolution_ratio\":\"1920x1080\"}",
+            "definition": '{"code_rate":"3000","frame_rate":"60","resolution_ratio":"1920x1080"}',
             "is_obs": "0",
             "is_simple": "1",
             "platform": "pc_link",
@@ -33,7 +35,7 @@ class ReportLiveDataWorker(BaseWorker):
             "screen_status": "1",
             "title": app_state.room_info.title,
             "type_status": "1",
-            "version": constant.LIVEHIME_VERSION
+            "version": constant.LIVEHIME_VERSION,
         }
         self.logger.info(f"report data: {report_data}")
         self.logger.info("ReportData Request")

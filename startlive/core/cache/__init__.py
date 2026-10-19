@@ -39,8 +39,9 @@ def cache_base_dir(kind: CacheType) -> Path:
     return _base_dir
 
 
-def get_cache_path(kind: CacheType, f_name: str, /, *,
-                   is_makedir: bool = True) -> tuple[Path, Path]:
+def get_cache_path(
+    kind: CacheType, f_name: str, /, *, is_makedir: bool = True
+) -> tuple[Path, Path]:
     _base_dir = cache_base_dir(kind)
     _const_path = _base_dir / f_name
     if is_makedir:

@@ -1,19 +1,16 @@
 from contextlib import suppress
-from logging import DEBUG
-from logging import Logger, LoggerAdapter
-from logging import getLogger
+from logging import DEBUG, Logger, LoggerAdapter, getLogger
 from logging.handlers import TimedRotatingFileHandler
 from os import remove
 from pathlib import Path
 
-from .formatter import ThreadClassFormatter
 from ..cache import get_cache_path
 from ..constant import LOGGER_NAME, CacheType
+from .formatter import ThreadClassFormatter
 
 
 def get_log_path(*, is_makedir: bool = True) -> tuple[Path, Path]:
-    return get_cache_path(CacheType.LOGS, "StartLive.log",
-                          is_makedir=is_makedir)
+    return get_cache_path(CacheType.LOGS, "StartLive.log", is_makedir=is_makedir)
 
 
 def init_logger(name: str = LOGGER_NAME) -> Logger:
@@ -23,8 +20,9 @@ def init_logger(name: str = LOGGER_NAME) -> Logger:
 
     logger.setLevel(DEBUG)
     log_dir, log_path = get_log_path()
-    fh = TimedRotatingFileHandler(log_path, when="midnight", interval=1,
-                                  backupCount=14, encoding="utf-8")
+    fh = TimedRotatingFileHandler(
+        log_path, when="midnight", interval=1, backupCount=14, encoding="utf-8"
+    )
     fh.suffix = "%Y-%m-%d.log"
     fh.namer = lambda _name: _name.replace(".log.", ".")
     for old_log in fh.getFilesToDelete():
@@ -32,7 +30,8 @@ def init_logger(name: str = LOGGER_NAME) -> Logger:
             remove(old_log)
     tc_formatter = ThreadClassFormatter(
         "%(asctime)s.%(msecs)03d [%(threadClassName)s] - %(message)s",
-        "%Y-%m-%d %H:%M:%S")
+        "%Y-%m-%d %H:%M:%S",
+    )
     fh.setFormatter(tc_formatter)
     logger.addHandler(fh)
     return logger

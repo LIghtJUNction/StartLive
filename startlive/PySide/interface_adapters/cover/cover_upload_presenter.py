@@ -11,7 +11,8 @@ class CoverUploadPresenter(Presenter):
     def prepare_success_view(self, *args, **kwargs):
         self._view.cover_audit_state()
         self._view.parent_window.add_thread(
-            CoverStateUpdateWorker(CoverStateUpdatePresenter(self._view)))
+            CoverStateUpdateWorker(CoverStateUpdatePresenter(self._view))
+        )
         if self._view.cover_crop_widget is not None:
             self._view.cover_crop_widget.close()
 
