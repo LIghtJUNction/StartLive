@@ -10,13 +10,13 @@ from PySide6.QtCore import QEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QWidget
 
-from src.PySide.interface_adapters.pre_live.fetch_pre_live_presenter import (
+from startlive.PySide.interface_adapters.pre_live.fetch_pre_live_presenter import (
     FetchPreLivePresenter,
 )
-from src.PySide.states import LoginState
-from src.PySide.window.stream_config import StreamConfigPanel
-from src.core import app_state
-from src.core.constant import CoverStatus
+from startlive.PySide.states import LoginState
+from startlive.PySide.window.stream_config import StreamConfigPanel
+from startlive.core import app_state
+from startlive.core.constant import CoverStatus
 
 
 class _Action:
